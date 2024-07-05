@@ -1,0 +1,173 @@
+<!-- otp.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+    <link rel="stylesheet" href="otp.css">
+</head>
+<style>
+    /* otp.css */
+
+/* General Styling */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(to bottom right, #002366, #000428);
+    color: white;
+}
+
+.otp-container {
+    width: 100%;
+    max-width: 500px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    padding: 40px;
+    text-align: center;
+}
+
+.otp-content .logo img {
+    max-width: 80px;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+p {
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+.highlight {
+    font-weight: bold;
+    color: #00e5ff;
+}
+
+.otp-inputs {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+.otp-input {
+    background: none;
+    border: 1px solid #00e5ff;
+    border-radius: 10px;
+    color: white;
+    text-align: center;
+    font-size: 24px;
+    padding: 10px;
+    width: 50px;
+    height: 50px;
+}
+
+.otp-input:focus {
+    outline: none;
+    border-color: #00bfff;
+}
+
+button {
+    background: #00e5ff;
+    border: none;
+    color: #000428;
+    padding: 15px 30px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+button:hover {
+    background: #00bfff;
+}
+
+a {
+    color: #00e5ff;
+    text-decoration: none;
+    margin-top: 20px;
+    display: inline-block;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+</style>
+<body>
+  <!-- otp.html -->
+<form action="/otp_verify" method="post">
+    <div class="otp-container">
+        <div class="otp-content">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='assets/img/dath2.png') }}" alt="Logo">
+            </div>
+            <h1>Create your account</h1>
+            <p>We sent an <span class="highlight">OTP</span> to your email.</p>
+            <div class="otp-inputs">
+                <input type="text" name="otp" maxlength="4" class="otp-input" placeholder="Enter OTP">
+            </div>
+            <button type="submit">Continue</button>
+            <a href="#" id="resend-link">Resend OTP</a>
+        </div>
+    </div>
+</form>
+
+    <script src="otp.js"></script>
+    <script>
+        // otp.js
+
+document.addEventListener('DOMContentLoaded', () => {
+    const otpInputs = document.querySelectorAll('.otp-input');
+    const continueBtn = document.getElementById('continue-btn');
+    const userEmail = document.getElementById('user-email');
+    
+    // Example email, replace with dynamic content if available
+    userEmail.textContent = "collins.mosh@gmail.com";
+
+    otpInputs.forEach((input, index) => {
+        input.addEventListener('input', () => {
+            if (input.value.length === 1 && index < otpInputs.length - 1) {
+                otpInputs[index + 1].focus();
+            }
+        });
+
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Backspace' && index > 0 && input.value === '') {
+                otpInputs[index - 1].focus();
+            }
+        });
+    });
+
+    continueBtn.addEventListener('click', () => {
+        let otpCode = '';
+        otpInputs.forEach(input => otpCode += input.value);
+
+        if (otpCode.length === otpInputs.length) {
+            verifyOTP(otpCode);
+        } else {
+            alert('Please enter the complete OTP.');
+        }
+    });
+});
+
+function verifyOTP(otpCode) {
+    // Handle OTP verification (submit to server, etc.)
+    console.log('OTP Code:', otpCode);
+}
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="register.css">
+</head>
+<style>
+    /* register.css */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(to bottom right, #002366, #000428);
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+.container {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    width: 400px;
+}
+
+.logo img {
+    max-width: 80px;
+    margin-bottom: 20px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 16px;
+}
+
+.input-group input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+button {
+    background-color: #00e5ff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 15px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #00b0cc;
+}
+
+.log-in {
+    margin-top: 20px;
+}
+
+.log-in p {
+    font-size: 14px;
+}
+
+.log-in a {
+    color: #00e5ff;
+    text-decoration: none;
+}
+
+</style>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="{{url_for('static',filename='assets/img/dath2.png')}}" alt="Logo">
+        </div>
+        <h1>Create your account</h1>
+        <form action="/register" method="POST">
+            <div class="input-group">
+                <input type="text" name="first_name" placeholder="First Name" required>
+            </div>
+            <div class="input-group">
+                <input type="text" name="last_name" placeholder="Last Name" required>
+            </div>
+            <div class="input-group">
+                <input type="email" name="email" placeholder="Email address" required>
+            </div>
+            <div class="input-group">
+                <input type="password" name="password" placeholder="Password" required>
+            </div>
+            <button type="submit">Continue</button>
+        </form>
+        <div class="log-in">
+            <p>Already have an account? <a href="/login">Log in</a></p>
+        </div>
+    </div>
+</body>
+</html>
