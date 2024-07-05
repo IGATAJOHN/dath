@@ -1,0 +1,9 @@
+flask
+flask_login
+flask_sqlalchemy
+langchain_openai
+flask_migrate
+BeautifulSoup
+python-dotenv
+flask_mail
+scrapegraphai
