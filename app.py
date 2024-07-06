@@ -401,7 +401,7 @@ def recommend_skills():
 
 
 
-@app.route('/dashboard')
+@app.route('/')
 def dashboard():
     return render_template('dashboard.html')
 @app.route('/account')
