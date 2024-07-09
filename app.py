@@ -190,7 +190,6 @@ def send_otp_email(to_email, otp):
         print(f"SMTP error occurred: {e}")
     except Exception as e:
         print(f"An error occurred: {e}")
-@app.route('/')
 @app.route('/login-page')
 def login_page():
     return render_template('login.html')
