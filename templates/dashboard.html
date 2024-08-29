@@ -1,471 +1,373 @@
-from flask import (
-    Flask,
-    render_template,
-    session,
-    redirect,
-    request,
-    url_for,
-    flash,
-    jsonify,
-)
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import (
-    LoginManager,
-    login_user,
-    logout_user,
-    login_required,
-    UserMixin,
-    current_user,
-)
-from flask_session import Session
-from pymongo import MongoClient
-import os
-from datetime import datetime,timedelta
-from itsdangerous import URLSafeTimedSerializer
-from flask_mail import Mail, Message
-from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-from openai import OpenAI
-import random
-from bson.objectid import ObjectId
-# nest_asyncio.apply()
-load_dotenv()
-app = Flask(__name__, static_url_path='/static', static_folder='static')
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-api_key = os.getenv("OPENAI_API_KEY")
-app.config["MONGO_URI"] = os.getenv("MONGODB_URI")
-client = MongoClient(app.config["MONGO_URI"])
-openai_client=OpenAI(api_key=api_key)
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+<!DOCTYPE html>
+<html lang="en">
 
-# Configuration for email
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_USERNAME'] = 'igatajohn15@gmail.com'
-app.config['MAIL_PASSWORD'] = 'vqvq zdef tweu nytn'
-app.config['MAIL_DEFAULT_SENDER'] = 'igatajohn15@gmail.com'
-app.config['SECURITY_PASSWORD_SALT'] = 'e33f8aa37685ca765b9d5613c0e41c0b'
-mail = Mail(app)
-# Secret key for generating reset tokens
-serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-db = client.get_database('dathway')
-# MongoDB collections
-users_collection = db.users
-courses_collection=db.courses_list
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{url_for('static',filename='assets/css/mystyle.css')}}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>Dathway - Unlock Your Potential</title>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                
+                <img src="{{ url_for('static', filename='assets/img/dl.png') }}" alt="Pathway Logo" width="120">
 
-user_activity_collection = db.user_activity
-# Define the collection
-conversations_collection = db.conversations
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">How it Works</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Why Dathway</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">FAQ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">What to Learn</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://forms.gle/rpQtixh3fpDKeqNv8"><button class="btn" style="border: 1px solid turquoise;color: white;">Login</button></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://forms.gle/rpQtixh3fpDKeqNv8"><button class="btn active btn-info">Signup</button></a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-# Initialize Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
-class User(UserMixin):
-    def __init__(self, user_data):
-        self.id = str(user_data['_id'])
-        self.first_name = user_data.get('first_name')
-        self.last_name = user_data.get('last_name')
-        self.email = user_data.get('email')
-        self.password = user_data.get('password')
-        self.conversation_history = user_data.get('conversation_history', [])
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': f"{self.first_name} {self.last_name}",
-            'email': self.email,
+ <!-- Hero Section with Video Background -->
+ <div class="hero-section">
+    <video autoplay muted loop>
+        <source src="{{ url_for('static', filename='assets/img/aivid.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="hero-content">
+        <h1>Unlock Your Potential with Personalized AI Guidance</h1>
+        <p>Empowering learners and career changers with tailored skill recommendations and curated courses.</p>
+        <a href="https://forms.gle/rpQtixh3fpDKeqNv8" class="btn btn-get-started">Get Started</a>
+    </div>
+</div>
+
+    <!-- How it Works Section -->
+    <div class="how-it-works-section">
+        <div class="container">
+            <h2 class="how-it-works-title">How It Works</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="how-it-works-item">
+                        <img src="{{ url_for('static', filename='assets/img/m1.png') }}" alt="Step 1">
+                        <div>
+                            <a href="https://forms.gle/rpQtixh3fpDKeqNv8"><button class="btn btn-lg"style=" border: 1px solid white; color: white;">Step 1</button></a><br><br>
+                            <h3>Sign Up</h3>
+                            <p>Create your account in just few clicks and join our community of learners and professionals.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="how-it-works-item">
+                        <img src="{{ url_for('static', filename='assets/img/m2.png') }}" alt="Step 2">
+                        <div>
+                            <a href="{{url_for('chat')}}"><button class="btn btn-lg" style="border: 1px solid white; color: white;">Step 2</button></a><br><br>
+                            <h3>Chat with AI</h3>
+                            <p>Answer a few simple questions about your interests, strengths and career goals. This helps our AI Understands your unique preferences.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="how-it-works-item">
+                        <img src="{{ url_for('static', filename='assets/img/m3.png') }}" alt="Step 3">
+                        <div>
+                            <a href="{{url_for('courses')}}"><button class="btn btn-lg" style="border: 1px solid white; color: white;">Step 3</button></a><br><br>
+                            <h3>Recommendations</h3>
+                            <p>Our AI analyzes your responses and generates a curated list of skills and courses tailored to your needs.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="how-it-works-item">
+                        <img src="{{ url_for('static', filename='assets/img/m4.png') }}" alt="Step 4">
+                        <div>
+                            <a href="{{url_for('register')}}"><button class="btn btn-lg" style="border: 1px solid white; color: white;">Step 4</button></a><br><br>
+                            <h3>Start Learning</h3>
+                            <p>Dive into the recommended courses and resources, and track your progress as you build new skills.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features and Benefits Section -->
+    <div class="features-benefits-section">
+        <div class="container">
+            <h2>Features and Benefits</h2>
+            <p>Discover skills that align with your passions and get guidance tailored to your unique journey.</p>
+            <div class="row">
+                <div class="col-md-3 feature-item">
+                    <img src="{{ url_for('static', filename='assets/img/g8.png') }}" alt="Personalized Skill Recommendations">
+                    <h5>Personalized Skill Recommendations</h5>
+                    <p>Get suggestions based on what you enjoy and your strengths.</p>
+                </div>
+                <div class="col-md-3 feature-item">
+                    <img src="{{ url_for('static', filename='assets/img/g7.png') }}" alt="Curated Courses">
+                    <h5>Curated Courses</h5>
+                    <p>Access courses that match your learning style and goals.</p>
+                </div>
+                <div class="col-md-3 feature-item">
+                    <img src="{{ url_for('static', filename='assets/img/g6.png') }}" alt="Supportive Community">
+                    <h5>Supportive Community</h5>
+                    <p>Connect with fellow learners and professionals for support and networking.</p>
+                </div>
+                <div class="col-md-3 feature-item">
+                    <img src="{{ url_for('static', filename='assets/img/g5.png') }}" alt="Accessibility">
+                    <h5>Accessibility</h5>
+                    <p>Designed with features that cater to users with learning disabilities.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Why Dathway Section -->
+        <section class="why-dathway">
+            <div class="container">
+                <h2>Why Dathway</h2>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <h5>Affordable:</h5>
+                            <p>We believe that everyone should have access to affordable career guidance. We offer an economical solution without compromising on quality.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <h5>AI-Powered Insights:</h5>
+                            <p>Leverage the power of artificial intelligence to gain valuable insights into your strengths and potential career paths.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <h5>Extensive Resources:</h5>
+                            <p>Access a comprehensive library of tailored resources, including insights, educational materials, and skill-building opportunities for your chosen career.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <h5>Convenient:</h5>
+                            <p>Say goodbye to lengthy career assessments and research. Get quick and accurate results with a streamlined process.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 offset-md-3">
+                        <div class="card">
+                            <h5>Accessible:</h5>
+                            <p>Our web app is readily available on all devices - Mobile, Tablet & Laptop ensuring that you can embark on your career journey anytime, anywhere.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+        <!-- What to Learn Section -->
+        <section class="what-to-learn">
+            <div class="container">
+                <h2>What to Learn</h2>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <img src="{{ url_for('static', filename='assets/img/r1.png') }}" alt="Data Science & Machine Learning">
+                            <div class="card-body">
+                                <h5 class="card-title">Data Science & Machine Learning</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">Python for Data Science and Machine Learning</li>
+                                    <li class="list-group-item">Machine Learning with TensorFlow</li>
+                                    <li class="list-group-item">Data Analysis with Pandas</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <img src="{{ url_for('static', filename='assets/img/r2.png') }}" alt="Artificial Intelligence & Deep Learning">
+                            <div class="card-body">
+                                <h5 class="card-title">Artificial Intelligence & Deep Learning</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">Introduction to Artificial Intelligence</li>
+                                    <li class="list-group-item">Deep Learning Specialization</li>
+                                    <li class="list-group-item">AI for Everyone</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <img src="{{ url_for('static', filename='assets/img/r3.png') }}" alt="Cloud Computing">
+                            <div class="card-body">
+                                <h5 class="card-title">Cloud Computing</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">AWS Certified Solutions Architect</li>
+                                    <li class="list-group-item">Google Cloud Platform Fundamentals</li>
+                                    <li class="list-group-item">Microsoft Azure Fundamentals</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div><br><br>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <img src="{{ url_for('static', filename='assets/img/r4.png') }}" alt="Data Science & Machine Learning">
+                            <div class="card-body">
+                                <h5 class="card-title">Cybersecurity</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">Certified Information Systems Security Professional(CISSP)</li>
+                                    <li class="list-group-item">Ethical Hacking</li>
+                                    <li class="list-group-item">Cybersecurity Essentials</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <img src="{{ url_for('static', filename='assets/img/r5.png') }}" alt="Data Science & Machine Learning">
+                            <div class="card-body">
+                                <h5 class="card-title">Web Development</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">Full-stack Web Development with React</li>
+                                    <li class="list-group-item">Frontend Web Development with Javascript</li>
+                                    <li class="list-group-item">Backend Development with Node.js</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='assets/img/r6.png') }}" alt="Data Science & Machine Learning">
+                    <div class="card-body">
+                        <h5 class="card-title">Mobile App Development</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">iOS Development with Swift</li>
+                            <li class="list-group-item">Android App Development with Kotlin</li>
+                            <li class="list-group-item">Cross-Platform Development with Flutter</li>
+                        </ul>
+                    </div>
+                </div>
+        </section>
+   <!-- Start Your Journey Section -->
+   <section id="start-your-journey" class="start-your-journey-section">
+    <div class="container">
+        <div class="content-wrapper">
+            <div>
+                <h1>Start Your Journey with FREE Credits!</h1>
+                <h4>Sign up now to receive 5000 Credits and 5 skills tokens, giving you access to chat with our AI assistant, connect with fellow learners in the community, and discover suggested skills to enhance your profile.</h4>
+                <div class="btn-group">
+                    <a href="#" class="btn">Try Dathway</a>
+                    <a href="#" class="btn">Watch Demo</a>
+                </div>
+            </div>
+            <img src="{{ url_for('static', filename='assets/img/coin.png') }}" alt="Free Credits Icon">
+        </div>
+    </div>
+</section>
+            <!-- Frequently Asked Questions Section -->
+    <section id="faq" class="faq-section">
+        <div class="container">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-item">
+                <h5>How can I use the Dathway platform? <span class="toggle-icon">▼</span></h5>
+                <div class="faq-content">
+                    <p>You can use the Dathway platform by signing up and following the on-screen instructions to get personalized recommendations and access to curated courses.</p>
+                </div>
+            </div>
+            <div class="faq-item active">
+                <h5>Is Dathway free to use? <span class="toggle-icon">▼</span></h5>
+                <div class="faq-content">
+                    <p>Yes, Dathway offers a free plan with basic features. For advanced features, premium plans are available at competitive rates.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <h5>What is Dathway all about? <span class="toggle-icon">▼</span></h5>
+                <div class="faq-content">
+                    <p>Dathway is an AI-driven platform designed to provide personalized guidance and curated learning paths for career development.</p>
+                </div>
+            </div>
+        </div>
+        <!-- Features and Benefits Section -->
+ 
+        <div class="features-bennefits-section">
+            <div class="container">
+             
+                <div class="row">
+                    <div class="col-md-4 benefit-card d-flex"  style="margin-left: -15px;">
+                        <img src="{{ url_for('static', filename='assets/img/dath1.png') }}" alt="Personalized Skill Recommendations">
+                        <p>At Dathway, we empower individuals by providing personalized learning experiences tailored to their interests, strengths, and career goals. Whether you have a learning disability or are transitioning into tech, our AI-driven platform guides you through the best skills and courses based on what you enjoy and excel at. Join Dathway to discover a supportive community, track your progress, and unlock your potential in the tech industry.</p>
+                    </div>
+                    <div class="col-md-4 benefit-card d-flex" style="margin-left: 10px;">
+                        <h3>Get in touch with our support team</h3>
+                        <form action="" method="POST" class="contact-form">
+                            <label for="name">Name</label>
+                            <input type="text" name="name" placeholder="Enter your name" required>
+                            <label for="email">Email</label>
+                            <input type="email" name="email" placeholder="Enter your email address" required>
+                            <label for="message">Message</label>
+                            <textarea name="message" id="message" placeholder="Enter your message" required></textarea>
+                            <button type="submit">Send Message</button>
+                        </form>
+                    </div>
+                    <div class="col-md-4 benefit-card d-flex" style="margin-left: 5px;">
+                        <h3>Links</h3>
+                        <div class="quick-links">
+                            <ul>
+                                <li><a href="#">About Us</a></li>
+                                <li><a href="#">Privacy Policy</a></li>
+                                <li><a href="#">Terms of Service</a></li>
+                            </ul>
+                        </div>
+                        <h3>Connect</h3>
+                        <div class="social-icons">
+                            <i class="fab fa-facebook"></i>
+                            <i class="fab fa-twitter"></i>
+                            <i class="fab fa-linkedin"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-copyright">
+                    &copy; 2024 Dathway. All rights reserved.
+                </div>
+            </div>
+        </footer>
         
-        }
-
-    @property
-    def is_active(self):
-        return True
-
-    @property
-    def is_authenticated(self):
-        return True
-
-    @property
-    def is_anonymous(self):
-        return False
-
-    def get_id(self):
-        return self.id
-    
-@login_manager.user_loader
-def load_user(user_id):
-    # Check both collections for the user
-    user_data = users_collection.find_one({"_id": ObjectId(user_id)})
-    if user_data:
-        return User(user_data)
-    return None
-def user_list():
-    users_data = users_collection.find()
-    users = [User(data).to_dict() for data in users_data]
-    return render_template("users.html", users=users)
-@app.route('/users')
-def users():
-    return render_template("users.html")
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        first_name = request.form.get("first_name")
-        last_name = request.form.get("last_name")
-        email = request.form.get("email")
-        password = request.form.get("password")
-        
-        # Validate form data
-        if not first_name or not last_name or not email or not password:
-            flash("All fields are required.", "danger")
-            return redirect(url_for("register"))
-
-        # Hash the password
-        hashed_password = generate_password_hash(password, method='scrypt')
-
-        # Create user document
-        user_data = {
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "password": hashed_password,
-           
-        }
-        
-        users_collection.insert_one(user_data)
-        flash("Registration successful! You can now log in.", "success")
-        return redirect(url_for("login"))
-        
-    return render_template("register.html")
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        user = None
-
-        # If not found, try to find a normal user
-        if not user:
-            normal_user = users_collection.find_one({"email": email})
-            if normal_user and check_password_hash(normal_user['password'], password):
-                user = User(normal_user)
-                session['user_id'] = str(normal_user['_id'])
-
-        if user:
-            login_user(user)
-          
-           
-            return redirect(url_for('chat'))
-        else:
-            flash('Login failed. Check your email and password.')
-
-    return render_template('login.html')
-def log_user_activity(user_id, event, details=None):
-    log_entry = {
-        "user_id": user_id,
-        "timestamp": datetime.utcnow(),
-        "event": event,
-        "details": details
-    }
-    user_activity_collection.insert_one(log_entry)
-@app.route('/get-response', methods=['POST'])
-def get_response():
-    try:
-        data = request.json
-        user_input = data.get('input', '')
-        if not user_input:
-            raise ValueError("No input provided")
-
-        user_id = session.get('user_id')
-
-        # Retrieve conversation history from the database
-        conversation_history = conversations_collection.find_one({'user_id': user_id}, {'_id': 0, 'history': 1})
-        conversation_history = conversation_history['history'] if conversation_history else []
-
-        # Append the new user input to the conversation history
-        conversation_history.append({"role": "user", "content": user_input})
-
-        response_text = generate_response(conversation_history)
-
-        # Append the bot response to the conversation history
-        conversation_history.append({"role": "assistant", "content": response_text})
-
-        # Update the conversation history in the database
-        conversations_collection.update_one(
-            {'user_id': user_id},
-            {'$set': {'history': conversation_history}},
-            upsert=True
-        )
-
-        log_user_activity(user_id, "chat_interaction", {"user_input": user_input, "response": response_text})
-
-        return jsonify({'response': response_text})
-    except Exception as e:
-        app.logger.error(f"Error: {str(e)}")
-        return jsonify({'error': str(e)}), 500 
-@app.route('/get-conversation-history', methods=['GET'])
-def get_conversation_history():
-    try:
-        user_id = session.get('user_id')
-
-        if not user_id:
-            return jsonify({'error': 'User not logged in'}), 401
-
-        # Retrieve conversation history from the database
-        conversation_history = conversations_collection.find_one({'user_id': user_id}, {'_id': 0, 'history': 1})
-        conversation_history = conversation_history['history'] if conversation_history else []
-
-        return jsonify({'conversation_history': conversation_history})
-    except Exception as e:
-        app.logger.error(f"Error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/chat')
-def chat():
-    return render_template('chat.html')
-
-@app.route('/chatbot', methods=['POST'])
-def chatbot():
-    try:
-        data = request.json
-        user_input = data.get('message', '')
-
-        user_id = session.get('user_id')
-
-        # Retrieve conversation history from the database
-        conversation_history = conversations_collection.find_one({'user_id': user_id}, {'_id': 0, 'history': 1})
-        conversation_history = conversation_history['history'] if conversation_history else []
-
-        # Append the new user input to the conversation history
-        conversation_history.append({"role": "user", "content": user_input})
-
-        response = generate_response(conversation_history)
-
-        # Append the bot response to the conversation history
-        conversation_history.append({"role": "assistant", "content": response})
-
-        # Update the conversation history in the database
-        conversations_collection.update_one(
-            {'user_id': user_id},
-            {'$set': {'history': conversation_history}},
-            upsert=True
-        )
-
-        return jsonify({'reply': response})
-    except Exception as e:
-        app.logger.error(f"Error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-def extract_skills(response_text):
-    # This is a simple example. You might need more advanced NLP techniques.
-    skills = []
-    possible_skills = ["Python", "Data Science", "Web Development", "AI", "Cybersecurity"]  # Add relevant skills
-
-    for skill in possible_skills:
-        if skill.lower() in response_text.lower():
-            skills.append(skill)
-
-    return skills
-
-def generate_response(conversation_history):
-    try:
-        # Call OpenAI to get the chatbot's response
-        completion = openai_client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[
-        {
-            "role": "system",
-            "content": """
-            Dathway is an engaging and friendly chatbot, providing guidance and counseling to people who want to get into technology. Dathway leads the conversation, asks relevant questions, and offers encouragement and resources based on the user's responses.
-
-            - Start by introducing yourself: "Hello, I’m Dathway, may I meet you?"
-            - Ask the user for their name: "(First name), How’s your day going?"
-            - Encourage the user to share more about themselves: "Tell me a little about yourself."
-            - Dive into specifics with questions like: "What’s your favorite time of the day? Morning, afternoon, or evening?"
-            - Explore the user's hobbies or interests: "What are your hobbies or interests?"
-            - Gauge their social preferences: "Do you prefer going out with friends or enjoying a quiet night alone at home?"
-            - Transition to tech: "How comfortable are you with technology? A tech wiz or more on the casual user side?"
-            - Inquire about education: "What’s your current level of education or area of study?"
-            - Understand their life goals: "What are your life goals or aspirations?"
-            - Discuss their interest in technology: "How do you feel about technology? Excited to see where it is going or more of a casual user?"
-            - Assess their available time: "How many hours per week can you dedicate to exploring and learning tech?"
-            - Ask about their preferred learning style: "Do you prefer working independently or collaborating with others?"
-            - Identify specific tech interests: "Any specific tech skills or areas you’ve been curious about?"
-            - Assure them if they are unsure: "No worries at all, if you don’t have any knowledge about this new interest."
-            - Gather work experience details: "Do you have any prior work experience related or in another field?"
-            - Understand their commitment: "How long do you want to be relevant in this industry?"
-            - Clarify their motivation: "Are you learning this skill for passion or for profit?"
-
-            After gathering all this information:
-            - Summarize the user's tech profile: "It’s great to learn more about you! Here’s a summary of your tech profile:"
-            - Provide a summary based on the conversation.
-            - Guide them to the next step: "Please click on the skills for the next line of action."
-            - End the conversation on a positive note.
-
-            Throughout the conversation:
-            - Offer encouragement and understanding of the user's interests and concerns.
-            - Guide users to additional resources on the platform as needed, such as recommending courses based on their interests.
-            - Maintain a balance between being conversational and professional.
-            """
-        },
-    ] + conversation_history
-)
-
-        model_response = completion.choices[0].message.content.strip()
-
-        # Extract skill sets from the response
-        suggested_skills = extract_skills(model_response)
-
-        # Store the skill sets in the user's document in the database
-        user_id = session.get('user_id')
-        if user_id:
-            store_detected_skills(user_id, suggested_skills)
-
-        return model_response
-    except Exception as e:
-        return str(e)
-
-def store_detected_skills(user_id, detected_skills):
-    # Update the user's document with the detected skills
-    users_collection.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {"detected_skills": detected_skills}}
-    )
-
-@app.route('/')
-def dashboard():
-    return render_template('dashboard.html')
-@app.route('/skills')
-def skills():
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login'))  # Redirect to login if the user is not logged in
-
-    # Retrieve the detected skills from the user's document in the database
-    user = users_collection.find_one({"_id": ObjectId(user_id)}, {"detected_skills": 1})
-    detected_skills = user.get('detected_skills', []) if user else []
-
-    return render_template('skills.html', detected_skills=detected_skills)
-
-@app.route('/upload_course', methods=['GET', 'POST'])
-def upload_course():
-    if request.method == 'POST':
-        course_title = request.form['course_title']
-        course_description = request.form['course_description']
-        course_link = request.form['course_link']
-        course_thumbnail = request.files['course_thumbnail']
-
-        # Save the thumbnail image to the server
-        if course_thumbnail:
-            filename = secure_filename(course_thumbnail.filename)
-            thumbnail_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            course_thumbnail.save(thumbnail_path)
-
-        # Create the course document
-        course_data = {
-            "title": course_title,
-            "description": course_description,
-            "link": course_link,
-            "thumbnail": thumbnail_path
-        }
-
-        # Insert into the MongoDB collection
-        courses_collection.insert_one(course_data)
-        
-        flash("Course added successfully!", "success")
-        return redirect(url_for('courses'))
-
-    return render_template('upload_course.html')
-@app.route('/community')
-def community():
-    return render_template('community.html')
-@app.route('/courses')
-def courses():
-    # Get the current user's detected skills
-    user_id = session.get('user_id')
-    if not user_id:
-        flash("Please log in to view recommended courses.", "danger")
-        return redirect(url_for("login"))
-
-    # Retrieve the detected skills from the database
-    user_data = users_collection.find_one({"_id": ObjectId(user_id)})
-    detected_skills = user_data.get('detected_skills', [])
-
-    # Fetch courses related to the detected skills
-    courses = []
-    if detected_skills:
-        # Query the database for courses matching any of the detected skills
-        courses = courses_collection.find({"title": {"$in": detected_skills}}).sort("title")
-
-    return render_template('courses.html', courses=courses)
-
-@app.route('/account')
-def account():
-    return render_template('account.html')
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    flash('Logged out successfully!', 'success')
-    return redirect(url_for('login'))
-@app.route('/api/weekly-active-users')
-def weekly_active_users():
-    end_of_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-    start_of_week = end_of_day - timedelta(days=7)
-
-    weekly_active_users = user_activity_collection.aggregate([
-        {
-            "$match": {
-                "timestamp": {"$gte": start_of_week, "$lt": end_of_day}
-            }
-        },
-        {
-            "$group": {
-                "_id": {
-                    "day": {"$dayOfMonth": "$timestamp"},
-                    "month": {"$month": "$timestamp"},
-                    "year": {"$year": "$timestamp"}
-                },
-                "unique_users": {"$addToSet": "$user_id"}
-            }
-        },
-        {
-            "$project": {
-                "date": {"$dateFromParts": {"year": "$_id.year", "month": "$_id.month", "day": "$_id.day"}},
-                "unique_users_count": {"$size": "$unique_users"}
-            }
-        },
-        {
-            "$sort": {"date": 1}
-        }
-    ])
-
-    data = [{"date": str(day["date"].date()), "count": day["unique_users_count"]} for day in weekly_active_users]
-    return jsonify(data)
-@app.route('/api/daily-active-users')
-def daily_active_users():
-    start_of_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    end_of_day = start_of_day + timedelta(days=1)
-
-    daily_active_users = user_activity_collection.aggregate([
-        {
-            "$match": {
-                "timestamp": {"$gte": start_of_day, "$lt": end_of_day}
-            }
-        },
-        {
-            "$group": {
-                "_id": "$user_id"
-            }
-        },
-        {
-            "$count": "daily_active_users"
-        }
-    ])
-
-    count = list(daily_active_users)[0]['daily_active_users'] if daily_active_users else 0
-    return jsonify({'count': count})    
-if __name__ == '__main__':
-    app.run(debug=True,host='0.0.0.0',port='5000')
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+<script>
+            // FAQ toggle functionality
+            document.querySelectorAll('.faq-item').forEach(item => {
+            item.addEventListener('click', () => {
+                item.classList.toggle('active');
+            });
+        });
+</script>
+</html>
