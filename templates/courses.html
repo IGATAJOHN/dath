@@ -345,54 +345,27 @@ p {
                 <li><a href="{{url_for('skills')}}">Skills</a></li>
                 <li><a href="{{url_for('courses')}}">Courses</a></li>
                 <li><a href="{{url_for('community')}}" >Community</a></li>
-                <li><a href="{{url_for('account')}}">Account</a></li>
+                <li><a href="{{url_for('logout')}}" >Logout</a></li>
             </ul>
         </nav>
 
         <div class="container mt-5">
             <div class="row">
+                {% for course in courses %}
                 <div class="col-md-4 mb-4">
                     <div class="card">
-                        <img src="{{url_for('static',filename='assets/img/r2.png')}}" class="card-img-top" alt="Data Science & Machine Learning">
+                        <img src="{{ course.thumbnail }}" class="card-img-top" alt="{{ course.title }}">
                         <div class="card-body">
-                            <h5 class="card-title">Data Science & Machine Learning</h5>
-                            <p class="card-text">
-                                1. Python for Data Science and Machine Learning<br>
-                                2. Machine Learning with TensorFlow<br>
-                                3. Data Analysis with Pandas
-                            </p>
+                            <h5 class="card-title">{{ course.title }}</h5>
+                            <p class="card-text">{{ course.description }}</p>
+                            <a href="{{ course.link }}" class="btn btn-primary">Enroll Now</a>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <img src="{{url_for('static',filename='assets/img/r3.png')}}" class="card-img-top" alt="Artificial Intelligence & Deep Learning">
-                        <div class="card-body">
-                            <h5 class="card-title">Artificial Intelligence & Deep Learning</h5>
-                            <p class="card-text">
-                                1. Introduction to Artificial Intelligence<br>
-                                2. Deep Learning Specialization<br>
-                                3. AI for Everyone
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <img src="{{url_for('static',filename='assets/img/r4.png')}}" class="card-img-top" alt="Cloud Computing">
-                        <div class="card-body">
-                            <h5 class="card-title">Cloud Computing</h5>
-                            <p class="card-text">
-                                1. AWS Certified Solutions Architect<br>
-                                2. Google Cloud Platform Fundamentals<br>
-                                3. Microsoft Azure Fundamentals
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <!-- Add more course cards as needed -->
+                {% endfor %}
             </div>
-            </div>
+        </div>
+                
             <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
             <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
             <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
