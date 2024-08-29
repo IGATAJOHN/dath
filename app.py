@@ -1,39 +1,42 @@
-from flask import Flask, render_template, session, redirect, request, url_for, flash, jsonify
+from flask import (
+    Flask,
+    render_template,
+    session,
+    redirect,
+    request,
+    url_for,
+    flash,
+    jsonify,
+)
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin, current_user
-from flask_sqlalchemy import SQLAlchemy
-from langchain_openai import ChatOpenAI
+from flask_login import (
+    LoginManager,
+    login_user,
+    logout_user,
+    login_required,
+    UserMixin,
+    current_user,
+)
+from flask_session import Session
+from pymongo import MongoClient
 import os
-import json
-from flask_migrate import Migrate
-import random
-import smtplib
-import requests
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
-# import nest_asyncio
-from scrapegraphai.graphs import SmartScraperGraph
-from langchain_core.output_parsers import StrOutputParser
-from sqlalchemy.orm import Session
-from bs4 import BeautifulSoup
-from dotenv import load_dotenv
+from datetime import datetime,timedelta
 from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Mail, Message
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+from openai import OpenAI
+import random
+from bson.objectid import ObjectId
 # nest_asyncio.apply()
 load_dotenv()
 app = Flask(__name__, static_url_path='/static', static_folder='static')
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
-# Set your OpenAI API key
-api_key = os.getenv('OPENAI_API_KEY')
-client = ChatOpenAI(api_key=api_key)
-
-# Your fine-tuned model ID
-fine_tuned_model = os.getenv('FINE_TUNED_MODEL_ID')
-
-db = SQLAlchemy(app)
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
+app.config["MONGO_URI"] = os.getenv("MONGODB_URI")
+client = MongoClient(app.config["MONGO_URI"])
+openai_client=OpenAI(api_key=api_key)
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
 # Configuration for email
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -46,363 +49,358 @@ app.config['SECURITY_PASSWORD_SALT'] = 'e33f8aa37685ca765b9d5613c0e41c0b'
 mail = Mail(app)
 # Secret key for generating reset tokens
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-migrate = Migrate(app, db)
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(150), nullable=False)
-    last_name = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+db = client.get_database('dathway')
+# MongoDB collections
+users_collection = db.users
+courses_collection=db.courses_list
 
-class CourseRecommendation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    skill = db.Column(db.String(100), nullable=False)
-    course_title = db.Column(db.String(200), nullable=False)
-    course_description = db.Column(db.Text, nullable=False)
-    course_url = db.Column(db.String(500), nullable=False)
-    user = db.relationship('User', backref=db.backref('recommendations', lazy=True))
-class SkillRecommendation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    skill_title = db.Column(db.String(100), nullable=False)
-    skill_description = db.Column(db.Text, nullable=False)
-    user = db.relationship('User', backref=db.backref('skills', lazy=True))
-class CommunityRecommendation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    community_name = db.Column(db.String(100), nullable=False)
-    community_description = db.Column(db.Text, nullable=False)
-    community_url = db.Column(db.String(500), nullable=False)
-    user = db.relationship('User', backref=db.backref('communities', lazy=True))
+user_activity_collection = db.user_activity
+# Define the collection
+conversations_collection = db.conversations
 
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-with app.app_context():
-    db.create_all()
+login_manager.login_view = "login"
+class User(UserMixin):
+    def __init__(self, user_data):
+        self.id = str(user_data['_id'])
+        self.first_name = user_data.get('first_name')
+        self.last_name = user_data.get('last_name')
+        self.email = user_data.get('email')
+        self.password = user_data.get('password')
+        self.conversation_history = user_data.get('conversation_history', [])
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': f"{self.first_name} {self.last_name}",
+            'email': self.email,
+        
+        }
 
+    @property
+    def is_active(self):
+        return True
 
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return self.id
+    
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    # Check both collections for the user
+    user_data = users_collection.find_one({"_id": ObjectId(user_id)})
+    if user_data:
+        return User(user_data)
+    return None
+def user_list():
+    users_data = users_collection.find()
+    users = [User(data).to_dict() for data in users_data]
+    return render_template("users.html", users=users)
+@app.route('/users')
+def users():
+    return render_template("users.html")
 
-
-@app.route('/register', methods=['GET', 'POST'])
+@app.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == 'POST':
-        try:
-            # Fetch form data using request.form.get() to avoid KeyError
-            first_name = request.form.get('first_name')
-            last_name = request.form.get('last_name')
-            email = request.form.get('email')
-            password = request.form.get('password')
-            confirm_password = request.form.get('confirm_password')
+    if request.method == "POST":
+        first_name = request.form.get("first_name")
+        last_name = request.form.get("last_name")
+        email = request.form.get("email")
+        password = request.form.get("password")
+        
+        # Validate form data
+        if not first_name or not last_name or not email or not password:
+            flash("All fields are required.", "danger")
+            return redirect(url_for("register"))
 
-            # Validate form data
-            if not all([first_name, last_name, email, password, confirm_password]):
-                flash('Please fill in all fields.', 'error')
-                return redirect(url_for('register'))
+        # Hash the password
+        hashed_password = generate_password_hash(password, method='scrypt')
 
-            existing_user = User.query.filter_by(email=email).first()
-            if existing_user:
-                flash('Email already exists. Please use a different email.', 'error')
-                return redirect(url_for('register'))
-
-            if password != confirm_password:
-                flash('Password and Confirm Password do not match.', 'error')
-                return redirect(url_for('register'))
-
-            # Hash password
-            password_hash = generate_password_hash(password)
-
-            # Create new user object and add to database
-            new_user = User(first_name=first_name, last_name=last_name, email=email, password=password_hash)
-            db.session.add(new_user)
-            db.session.commit()
-
-            flash('You have successfully registered!', 'success')
-            return redirect(url_for('successful_register'))
-
-        except Exception as e:
-            flash('An error occurred while processing your request.', 'error')
-            print(str(e))
-            return redirect(url_for('register'))
-
-    return render_template('register.html')
+        # Create user document
+        user_data = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "password": hashed_password,
+           
+        }
+        
+        users_collection.insert_one(user_data)
+        flash("Registration successful! You can now log in.", "success")
+        return redirect(url_for("login"))
+        
+    return render_template("register.html")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        user = User.query.filter_by(email=email).first()
+        user = None
 
-        if user and check_password_hash(user.password, password):
-            # Generate OTP
-            otp = random.randint(1000, 9999)
-            session['otp'] = otp
-            session['user_id'] = user.id
+        # If not found, try to find a normal user
+        if not user:
+            normal_user = users_collection.find_one({"email": email})
+            if normal_user and check_password_hash(normal_user['password'], password):
+                user = User(normal_user)
+                session['user_id'] = str(normal_user['_id'])
 
-            # Send OTP to user's email
-            send_otp_email(user.email, otp)
-
-            flash('OTP sent to your email. Please verify.', 'info')
-            return redirect(url_for('otp_verify'))
-        else:
-            flash('Invalid email or password. Please try again.', 'error')
-
-    return render_template('login.html')
-@app.route('/otp_verify', methods=['GET', 'POST'])
-def otp_verify():
-    if request.method == 'POST':
-        otp_input = request.form['otp']
-        if otp_input == str(session.get('otp')):
-            user = User.query.get(session['user_id'])
+        if user:
             login_user(user)
-            flash('Logged in successfully!', 'success')
+          
+           
             return redirect(url_for('chat'))
         else:
-            flash('Invalid OTP. Please try again.', 'error')
-    return render_template('otp.html')
-def send_otp_email(to_email, otp):
-    from_email = app.config['MAIL_USERNAME']
-    from_password = app.config['MAIL_PASSWORD']
-    smtp_server = app.config['MAIL_SERVER']
-    smtp_port = app.config['MAIL_PORT']
+            flash('Login failed. Check your email and password.')
 
-    subject = 'Your OTP Code'
-    body = f'Your OTP code is {otp}.'
-
-    msg = MIMEMultipart()
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg['Subject'] = subject
-
-    msg.attach(MIMEText(body, 'plain'))
-
-    try:
-        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-            server.login(from_email, from_password)
-            server.sendmail(from_email, to_email, msg.as_string())
-        print("OTP email sent successfully!")
-    except smtplib.SMTPException as e:
-        print(f"SMTP error occurred: {e}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-@app.route('/login-page')
-def login_page():
     return render_template('login.html')
-@app.route('/otp-page')
-def otp_page():
-    return render_template('otp.html')
+def log_user_activity(user_id, event, details=None):
+    log_entry = {
+        "user_id": user_id,
+        "timestamp": datetime.utcnow(),
+        "event": event,
+        "details": details
+    }
+    user_activity_collection.insert_one(log_entry)
 @app.route('/get-response', methods=['POST'])
-@login_required
 def get_response():
     try:
-        if 'voice_data' in request.files:
-            # Handle voice data from frontend, assuming it's a file upload
-            voice_file = request.files['voice_data']
-            user_input = transcribe_voice(voice_file)  # Function to transcribe voice to text
-        else:
-            user_input = request.json.get('input')
+        data = request.json
+        user_input = data.get('input', '')
+        if not user_input:
+            raise ValueError("No input provided")
 
-        response = generate_response(user_input)
-        return jsonify({'response': response})
+        user_id = session.get('user_id')
+
+        # Retrieve conversation history from the database
+        conversation_history = conversations_collection.find_one({'user_id': user_id}, {'_id': 0, 'history': 1})
+        conversation_history = conversation_history['history'] if conversation_history else []
+
+        # Append the new user input to the conversation history
+        conversation_history.append({"role": "user", "content": user_input})
+
+        response_text = generate_response(conversation_history)
+
+        # Append the bot response to the conversation history
+        conversation_history.append({"role": "assistant", "content": response_text})
+
+        # Update the conversation history in the database
+        conversations_collection.update_one(
+            {'user_id': user_id},
+            {'$set': {'history': conversation_history}},
+            upsert=True
+        )
+
+        log_user_activity(user_id, "chat_interaction", {"user_input": user_input, "response": response_text})
+
+        return jsonify({'response': response_text})
     except Exception as e:
-        return jsonify({'error': str(e)})
-# OTP generation
-def generate_otp():
-    return str(random.randint(1000, 9999))
-@app.route('/otp')
-def otp():
-    return render_template('otp.html')
-@app.route('/verify-otp', methods=['POST'])
-def verify_otp():
-    otp = request.json.get('otp')
-    if otp == session.get('otp'):
-        session.pop('otp', None)  # Clear the OTP from session
-        return jsonify({'success': True, 'redirect_url': url_for('dashboard')})
-    else:
-        return jsonify({'success': False, 'error': 'Invalid OTP'})
+        app.logger.error(f"Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500 
+@app.route('/get-conversation-history', methods=['GET'])
+def get_conversation_history():
+    try:
+        user_id = session.get('user_id')
+
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        # Retrieve conversation history from the database
+        conversation_history = conversations_collection.find_one({'user_id': user_id}, {'_id': 0, 'history': 1})
+        conversation_history = conversation_history['history'] if conversation_history else []
+
+        return jsonify({'conversation_history': conversation_history})
+    except Exception as e:
+        app.logger.error(f"Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/chat')
-@login_required
 def chat():
     return render_template('chat.html')
 
 @app.route('/chatbot', methods=['POST'])
 def chatbot():
-    data = request.json
-    user_input = data.get('message', '')
-
-    response = generate_response(user_input)
-    
-    return jsonify({'reply': response})
-    # Define the prompt template
-template = """
-Dathway is an engaging and friendly chatbot, providing guidance and counseling to folks who wants to get into technology.
-- lead the conversation and ask questions to get to know them, start by asking the user for their name, their social life, their hobbies, what they love
-- encourage users to share more about their interests and experiences
-- whether a user is experienced or not, you have to assume he or she does not know their career path and treat them like novices
-- offer encouragement and show understanding of user's interests and concerns
-- Guide users to additional resources on the platform as needed, for instance, users should click on courses to get the recommended courses,
-- provide summary of your discovery about the users passion from the preceding conversation
-- after the summary, instruct the user to click on the skills for the next line of action and that ends your conversation with that user
-- maintain a balance between conversational and professional
-
-User: {user_input}
-Dathway:
-"""
-
-# Create the prompt template
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ('system', template),
-        ('user','{user_input}')
-    ]
-)
-parser=StrOutputParser()
-# Initialize the chat model
-chat_model = ChatOpenAI(model_name=fine_tuned_model)
-
-# Create the LLMChain
-llm_chain = prompt | chat_model | parser
-def generate_response(user_input):
     try:
-        # Generate the response using the LLMChain
-        response = llm_chain.invoke({"user_input":user_input})
-        return response
+        data = request.json
+        user_input = data.get('message', '')
+
+        user_id = session.get('user_id')
+
+        # Retrieve conversation history from the database
+        conversation_history = conversations_collection.find_one({'user_id': user_id}, {'_id': 0, 'history': 1})
+        conversation_history = conversation_history['history'] if conversation_history else []
+
+        # Append the new user input to the conversation history
+        conversation_history.append({"role": "user", "content": user_input})
+
+        response = generate_response(conversation_history)
+
+        # Append the bot response to the conversation history
+        conversation_history.append({"role": "assistant", "content": response})
+
+        # Update the conversation history in the database
+        conversations_collection.update_one(
+            {'user_id': user_id},
+            {'$set': {'history': conversation_history}},
+            upsert=True
+        )
+
+        return jsonify({'reply': response})
+    except Exception as e:
+        app.logger.error(f"Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+def extract_skills(response_text):
+    # This is a simple example. You might need more advanced NLP techniques.
+    skills = []
+    possible_skills = ["Python", "Data Science", "Web Development", "AI", "Cybersecurity"]  # Add relevant skills
+
+    for skill in possible_skills:
+        if skill.lower() in response_text.lower():
+            skills.append(skill)
+
+    return skills
+
+def generate_response(conversation_history):
+    try:
+        # Call OpenAI to get the chatbot's response
+        completion = openai_client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {
+            "role": "system",
+            "content": """
+            Dathway is an engaging and friendly chatbot, providing guidance and counseling to people who want to get into technology. Dathway leads the conversation, asks relevant questions, and offers encouragement and resources based on the user's responses.
+
+            - Start by introducing yourself: "Hello, I’m Dathway, may I meet you?"
+            - Ask the user for their name: "(First name), How’s your day going?"
+            - Encourage the user to share more about themselves: "Tell me a little about yourself."
+            - Dive into specifics with questions like: "What’s your favorite time of the day? Morning, afternoon, or evening?"
+            - Explore the user's hobbies or interests: "What are your hobbies or interests?"
+            - Gauge their social preferences: "Do you prefer going out with friends or enjoying a quiet night alone at home?"
+            - Transition to tech: "How comfortable are you with technology? A tech wiz or more on the casual user side?"
+            - Inquire about education: "What’s your current level of education or area of study?"
+            - Understand their life goals: "What are your life goals or aspirations?"
+            - Discuss their interest in technology: "How do you feel about technology? Excited to see where it is going or more of a casual user?"
+            - Assess their available time: "How many hours per week can you dedicate to exploring and learning tech?"
+            - Ask about their preferred learning style: "Do you prefer working independently or collaborating with others?"
+            - Identify specific tech interests: "Any specific tech skills or areas you’ve been curious about?"
+            - Assure them if they are unsure: "No worries at all, if you don’t have any knowledge about this new interest."
+            - Gather work experience details: "Do you have any prior work experience related or in another field?"
+            - Understand their commitment: "How long do you want to be relevant in this industry?"
+            - Clarify their motivation: "Are you learning this skill for passion or for profit?"
+
+            After gathering all this information:
+            - Summarize the user's tech profile: "It’s great to learn more about you! Here’s a summary of your tech profile:"
+            - Provide a summary based on the conversation.
+            - Guide them to the next step: "Please click on the skills for the next line of action."
+            - End the conversation on a positive note.
+
+            Throughout the conversation:
+            - Offer encouragement and understanding of the user's interests and concerns.
+            - Guide users to additional resources on the platform as needed, such as recommending courses based on their interests.
+            - Maintain a balance between being conversational and professional.
+            """
+        },
+    ] + conversation_history
+)
+
+        model_response = completion.choices[0].message.content.strip()
+
+        # Extract skill sets from the response
+        suggested_skills = extract_skills(model_response)
+
+        # Store the skill sets in the user's document in the database
+        user_id = session.get('user_id')
+        if user_id:
+            store_detected_skills(user_id, suggested_skills)
+
+        return model_response
     except Exception as e:
         return str(e)
 
-@app.route('/skills')
-@login_required
-def skills():
-    recommended_skills = SkillRecommendation.query.filter_by(user_id=current_user.id).all()
-    return render_template('skills.html', skills=recommended_skills)
-def send_password_reset_email(user):
-    token = generate_reset_token(user)
-    reset_url = url_for('reset_password', token=token, _external=True)
-    msg = Message(
-        subject="Password Reset Request",
-        recipients=[user.email],
-        body=f"To reset your password, visit the following link: {reset_url}\n\n"
-             "If you did not make this request, please ignore this email."
+def store_detected_skills(user_id, detected_skills):
+    # Update the user's document with the detected skills
+    users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"detected_skills": detected_skills}}
     )
-    try:
-        mail.send(msg)
-        print(f"Sent email to {user.email}")
-    except Exception as e:
-        print(f"Failed to send email: {e}")
-
-def generate_reset_token(user):
-    return serializer.dumps(user.email, salt=app.config['SECURITY_PASSWORD_SALT'])
-def confirm_reset_token(token, expiration=3600):
-    try:
-        email = serializer.loads(
-            token,
-            salt=app.config['SECURITY_PASSWORD_SALT'],
-            max_age=expiration
-        )
-    except:
-        return False
-    return email
-@app.route('/reset_password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    email = confirm_reset_token(token)
-    if not email:
-        flash('The reset link is invalid or has expired.', 'error')
-        return redirect(url_for('login'))
-
-    if request.method == 'POST':
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-        if password != confirm_password:
-            flash('Passwords do not match.', 'error')
-            return redirect(url_for('reset_password', token=token))
-
-        user = User.query.filter_by(email=email).first()
-        if user:
-            user.password = generate_password_hash(password)
-            db.session.commit()
-            flash('Your password has been updated!', 'success')
-            return redirect(url_for('new_password_set'))
-
-    return render_template('reset_password.html', token=token)
-@app.route('/password_reset_mail_sent')
-def password_reset_mail_sent():
-    return render_template('password_reset_mail_sent.html')
-
-@app.route('/new_password_set')
-def new_password_set():
-    return render_template('new_password_set.html')
-@app.errorhandler(401)
-def unauthorized(error):
-    return render_template('unauthorize.html'), 401
-
-@app.route('/community')
-@login_required
-def community():
-    recommended_communities = CommunityRecommendation.query.filter_by(user_id=current_user.id).all()
-    return render_template('community.html', communities=recommended_communities)
-
-@app.route('/courses')
-@login_required
-def courses():
-    user_id = current_user.id
-    recommended_courses = CourseRecommendation.query.filter_by(user_id=user_id).all()
-    
-    # Debug: Print recommended courses
-    for course in recommended_courses:
-        print(f"Course: {course.course_title}, URL: {course.course_url}")
-
-    return render_template('courses.html', courses=recommended_courses)
-
-
-@app.route('/recommend-skills', methods=['POST'])
-@login_required
-def recommend_skills():
-    try:
-        user_input = request.json.get('input')
-        
-        prompt = f"I want to begin machine learning. Recommend necessary skillsets for: {user_input}"
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        # Extract the assistant's message content
-        message_content = response.choices[0].message.content
-
-        # Split the message content into skills and descriptions
-        recommended_skills = []
-        for line in message_content.strip().split('\n'):
-            if line and ':' in line:
-                skill, description = line.split(':', 1)
-                recommended_skills.append({"title": skill.strip(), "description": description.strip()})
-
-        # Save recommended skills to the database
-        for skill in recommended_skills:
-            new_skill = SkillRecommendation(
-                user_id=current_user.id,
-                skill_title=skill['title'],
-                skill_description=skill['description']
-            )
-            db.session.add(new_skill)
-        db.session.commit()
-        
-        return jsonify({'skills': recommended_skills})
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-
 
 @app.route('/')
 def dashboard():
     return render_template('dashboard.html')
+@app.route('/skills')
+def skills():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))  # Redirect to login if the user is not logged in
+
+    # Retrieve the detected skills from the user's document in the database
+    user = users_collection.find_one({"_id": ObjectId(user_id)}, {"detected_skills": 1})
+    detected_skills = user.get('detected_skills', []) if user else []
+
+    return render_template('skills.html', detected_skills=detected_skills)
+
+@app.route('/upload_course', methods=['GET', 'POST'])
+def upload_course():
+    if request.method == 'POST':
+        course_title = request.form['course_title']
+        course_description = request.form['course_description']
+        course_link = request.form['course_link']
+        course_thumbnail = request.files['course_thumbnail']
+
+        # Save the thumbnail image to the server
+        if course_thumbnail:
+            filename = secure_filename(course_thumbnail.filename)
+            thumbnail_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            course_thumbnail.save(thumbnail_path)
+
+        # Create the course document
+        course_data = {
+            "title": course_title,
+            "description": course_description,
+            "link": course_link,
+            "thumbnail": thumbnail_path
+        }
+
+        # Insert into the MongoDB collection
+        courses_collection.insert_one(course_data)
+        
+        flash("Course added successfully!", "success")
+        return redirect(url_for('courses'))
+
+    return render_template('upload_course.html')
+@app.route('/community')
+def community():
+    return render_template('community.html')
+@app.route('/courses')
+def courses():
+    # Get the current user's detected skills
+    user_id = session.get('user_id')
+    if not user_id:
+        flash("Please log in to view recommended courses.", "danger")
+        return redirect(url_for("login"))
+
+    # Retrieve the detected skills from the database
+    user_data = users_collection.find_one({"_id": ObjectId(user_id)})
+    detected_skills = user_data.get('detected_skills', [])
+
+    # Fetch courses related to the detected skills
+    courses = []
+    if detected_skills:
+        # Query the database for courses matching any of the detected skills
+        courses = courses_collection.find({"title": {"$in": detected_skills}}).sort("title")
+
+    return render_template('courses.html', courses=courses)
+
 @app.route('/account')
 def account():
     return render_template('account.html')
@@ -412,17 +410,62 @@ def logout():
     logout_user()
     flash('Logged out successfully!', 'success')
     return redirect(url_for('login'))
-@app.route('/forgot_password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        user = User.query.filter_by(email=email).first()
-        if user:
-            send_password_reset_email(user)
-            flash('A password reset email has been sent.', 'info')
-        else:
-            flash('No account associated with this email.', 'error')
-        return redirect(url_for('password_reset_mail_sent'))
-    return render_template('forgot_password.html')
+@app.route('/api/weekly-active-users')
+def weekly_active_users():
+    end_of_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    start_of_week = end_of_day - timedelta(days=7)
+
+    weekly_active_users = user_activity_collection.aggregate([
+        {
+            "$match": {
+                "timestamp": {"$gte": start_of_week, "$lt": end_of_day}
+            }
+        },
+        {
+            "$group": {
+                "_id": {
+                    "day": {"$dayOfMonth": "$timestamp"},
+                    "month": {"$month": "$timestamp"},
+                    "year": {"$year": "$timestamp"}
+                },
+                "unique_users": {"$addToSet": "$user_id"}
+            }
+        },
+        {
+            "$project": {
+                "date": {"$dateFromParts": {"year": "$_id.year", "month": "$_id.month", "day": "$_id.day"}},
+                "unique_users_count": {"$size": "$unique_users"}
+            }
+        },
+        {
+            "$sort": {"date": 1}
+        }
+    ])
+
+    data = [{"date": str(day["date"].date()), "count": day["unique_users_count"]} for day in weekly_active_users]
+    return jsonify(data)
+@app.route('/api/daily-active-users')
+def daily_active_users():
+    start_of_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day + timedelta(days=1)
+
+    daily_active_users = user_activity_collection.aggregate([
+        {
+            "$match": {
+                "timestamp": {"$gte": start_of_day, "$lt": end_of_day}
+            }
+        },
+        {
+            "$group": {
+                "_id": "$user_id"
+            }
+        },
+        {
+            "$count": "daily_active_users"
+        }
+    ])
+
+    count = list(daily_active_users)[0]['daily_active_users'] if daily_active_users else 0
+    return jsonify({'count': count})    
 if __name__ == '__main__':
     app.run(debug=True,host='0.0.0.0',port='5000')
