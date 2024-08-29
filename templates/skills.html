@@ -204,56 +204,54 @@ main {
 <body>
     <div class="chat-container">
         <!-- Header Section -->
-       <!-- Header Section -->
-       <header>
-        <div class="top-bar">
-            <div class="logo">
-                <img src="{{url_for('static', filename='assets/img/dath1.png')}}" alt="Dathway AI Logo">
+        <header>
+            <div class="top-bar">
+                <div class="logo">
+                    <img src="{{url_for('static', filename='assets/img/dath1.png')}}" alt="Dathway AI Logo">
+                </div>
+                <div class="coins-info">
+                    <div class="profile-icon">{{ current_user.first_name[0] + current_user.last_name[0] }}</div>
+                </div>
+                <div class="hamburger-menu" id="hamburger">
+                    <i class="fas fa-bars"></i>
+                </div>
             </div>
-            <div class="coins-info">
-                <!-- <span>Reveal coins: 💎 25</span>
-                <span>Coins left: 4998</span> -->
-                <div class="profile-icon">{{current_user.first_name[0]+current_user.last_name[0]}}</div>
-            </div>
-            <div class="hamburger-menu" id="hamburger">
-                <i class="fas fa-bars"></i>
-            </div>
-        </div>
-    </header>
+        </header>
+    
         <!-- Navigation Bar -->
         <nav id="nav-bar">
             <ul>
-                <li><a href="{{url_for('chat')}}" class="active">Chat</a></li>
-                <li><a href="{{url_for('skills')}}" >Skills</a></li>
-                <li><a href="{{url_for('courses')}}" >Courses</a></li>
-                <li><a href="{{url_for('community')}}" >Community</a></li>
-                <li><a href="{{url_for('account')}}" >Account</a></li>
+                <li><a href="{{ url_for('chat') }}" class="active">Chat</a></li>
+                <li><a href="{{ url_for('skills') }}">Skills</a></li>
+                <li><a href="{{ url_for('courses') }}">Courses</a></li>
+                <li><a href="{{ url_for('community') }}">Community</a></li>
+                <li><a href="{{url_for('logout')}}" >Logout</a></li>
             </ul>
         </nav>
-<main>
-        <div class="container mt-5">
-            <div class="row">
-                <div class="col-md-6 mb-4">
-                    <div class="card p-3">
-                        <h5 class="card-title">★★★★☆</h5>
-                        <h6 class="card-subtitle mb-2 text-muted">Product Management</h6>
-                        <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam.</p>
-                        <button class="btn btn-reveal">Reveal 1<span class="badge badge-light">👑</span></button>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-4">
-                    <div class="card p-3">
-                        <h5 class="card-title">★★★★☆</h5>
-                        <h6 class="card-subtitle mb-2 text-muted">Business Development</h6>
-                        <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam.</p>
-                        <button class="btn btn-reveal">Reveal 1<span class="badge badge-light">👑</span></button>
-                    </div>
+    
+        <main>
+            <div class="container mt-5">
+                <div class="row">
+                    {% if detected_skills %}
+                        {% for skill in detected_skills %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card p-3">
+                                    <h5 class="card-title">★★★★☆</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">{{ skill }}</h6>
+                                    <p class="card-text">Enhance your {{ skill }} abilities with our top-rated resources.</p>
+                                    <button class="btn btn-reveal">Reveal 1<span class="badge badge-light">👑</span></button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <p>No skills suggested yet. Please chat with the bot to get recommendations.</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-        </div>
+        </main>
         
-    </main>
-
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
