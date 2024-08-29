@@ -1,9 +1,8 @@
 flask
 flask_login
-flask_sqlalchemy
-langchain_openai
+pymongo
 flask_migrate
-BeautifulSoup
+openai
+flask_session
 python-dotenv
 flask_mail
-scrapegraphai
