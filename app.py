@@ -297,7 +297,7 @@ def generate_response(conversation_history):
             - Gather work experience details: "Do you have any prior work experience related or in another field?"
             - Understand their commitment: "How long do you want to be relevant in this industry?"
             - Clarify their motivation: "Are you learning this skill for passion or for profit?"
-
+            - Ask only one question at a time, do not combine two or more questions together.
             After gathering all this information:
             - Summarize the user's tech profile: "It’s great to learn more about you! Here’s a summary of your tech profile:"
             - Provide a summary based on the conversation.
