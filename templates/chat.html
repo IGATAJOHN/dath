@@ -58,25 +58,33 @@ header {
 
 .coins-info {
     display: flex;
-    align-items: center;
+    justify-content: flex-end; /* Aligns the items (profile icon and button) to the right */
+    align-items: center; /* Vertically centers the content */
+    gap: 10px; /* Adjusts the space between the clear button and profile icon */
 }
 
-.coins-info span {
-    margin-right: 20px;
-    font-size: 1.2em;
+.clear-button {
+    background-color: #f0f0f0;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.clear-button:hover {
+    background-color: #ccc;
 }
 
 .profile-icon {
-    width: 45px;
-    height: 45px;
     background: #00e5ff;
     color: #000428;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 50%;
+    font-size: 18px;
     font-weight: bold;
-    font-size: 1.2em;
 }
 
 /* Navigation */
@@ -318,13 +326,15 @@ p {
         <header>
             <div class="top-bar">
                 <div class="logo">
-                    <img src="{{url_for('static', filename='assets/img/dathway logo web.png')}}" alt="Dathway AI Logo">
+                    <img src="{{url_for('static', filename='assets/img/dl.png')}}" alt="Dathway AI Logo">
                 </div>
                 <div class="coins-info">
-                    <!-- <span>Reveal coins: 💎 25</span>
-                    <span>Coins left: 4998</span> -->
+                    <button id="clear-chat-btn" style="background: #ff4c4c; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Clear</button>
                     <div class="profile-icon">{{current_user.first_name[0]+current_user.last_name[0]}}</div>
                 </div>
+                
+                      <!-- Clear Chat Button -->
+        <!-- <button id="clear-chat-btn" style="background: #ff4c4c; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Clear Chat</button> -->
                 <div class="hamburger-menu" id="hamburger">
                     <i class="fas fa-bars"></i>
                 </div>
@@ -368,6 +378,12 @@ p {
     <script src="static/chat.js"></script>
     <script>
 // chat.js
+// Clear chat when the "Clear Chat" button is clicked
+document.getElementById('clear-chat-btn').addEventListener('click', () => {
+    let chatBox = document.getElementById('chat-box');
+    chatBox.innerHTML = ''; // Remove all chat messages
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchConversationHistory();
 });
