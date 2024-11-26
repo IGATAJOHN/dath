@@ -765,4 +765,4 @@ def daily_active_users():
     count = list(daily_active_users)[0]['daily_active_users'] if daily_active_users else 0
     return jsonify({'count': count})    
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
