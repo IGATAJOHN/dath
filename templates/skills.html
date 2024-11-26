@@ -200,6 +200,41 @@ main {
             background-color: #00C8FF; /* Reveal button color */
             color: white;
         }
+        .skill-card {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #14589c;
+        }
+        .skill-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .reveal-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #00ffe4;
+            color: #0e2a47;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .skill-description {
+            display: none;
+            text-align: center;
+        }
 </style>
 <body>
     <div class="chat-container">
@@ -207,7 +242,7 @@ main {
         <header>
             <div class="top-bar">
                 <div class="logo">
-                    <img src="{{url_for('static', filename='assets/img/dath1.png')}}" alt="Dathway AI Logo">
+                    <img src="{{url_for('static', filename='assets/img/dathway logo web.png')}}" alt="Dathway AI Logo">
                 </div>
                 <div class="coins-info">
                     <div class="profile-icon">{{ current_user.first_name[0] + current_user.last_name[0] }}</div>
@@ -217,61 +252,98 @@ main {
                 </div>
             </div>
         </header>
-    
-        <!-- Navigation Bar -->
-        <nav id="nav-bar">
-            <ul>
-                <li><a href="{{ url_for('chat') }}" class="active">Chat</a></li>
-                <li><a href="{{ url_for('skills') }}">Skills</a></li>
-                <li><a href="{{ url_for('courses') }}">Courses</a></li>
-                <li><a href="{{ url_for('community') }}">Community</a></li>
-                <li><a href="{{url_for('logout')}}" >Logout</a></li>
-            </ul>
-        </nav>
-    
-        <main>
-            <div class="container mt-5">
-                <div class="row">
-                    {% if detected_skills %}
-                        {% for skill in detected_skills %}
-                            <div class="col-md-6 mb-4">
-                                <div class="card p-3">
-                                    <h5 class="card-title">★★★★☆</h5>
-                                    <h6 class="card-subtitle mb-2 text-muted">{{ skill }}</h6>
-                                    <p class="card-text">Enhance your {{ skill }} abilities with our top-rated resources.</p>
-                                    <button class="btn btn-reveal">Reveal 1<span class="badge badge-light">👑</span></button>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="col-12">
-                            <p>No skills suggested yet. Please chat with the bot to get recommendations.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </main>
+
+       <!-- Navigation Bar -->
+            <nav id="nav-bar">
+                <ul>
+                    <li><a href="{{ url_for('chat') }}" class="active">Chat</a></li>
+                    <li><a href="{{ url_for('skills') }}">Skills</a></li>
+                    <li><a href="{{ url_for('courses') }}">Courses</a></li>
+                    <li><a href="{{ url_for('community') }}">Community</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                </ul>
+            </nav>
         
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+            <!-- Main Content: Skills Section -->
+            <main>
+                <div class="container mt-5">
+                    <div id="skillsContainer" class="row">
+                        <!-- Dynamic skill cards will be injected here -->
+                    </div>
+                </div>
+            </main>
+        
+            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        
+            <script>
+           document.getElementById('hamburger').addEventListener('click', function() {
+            var navBar = document.getElementById('nav-bar');
+            navBar.style.display = navBar.style.display === 'block' ? 'none' : 'block';
+        });
 
-    <script>
-        // chat.js
+        document.addEventListener("DOMContentLoaded", function() {
+            // Skill details dictionary
+            const skillDetails = {
+                "IT": "Information Technology involves the use of computers to store, retrieve, transmit, and manipulate data or information.",
+                "Software Development": "Software Development is the process of conceiving, specifying, designing, programming, and testing applications and systems.",
+                "Tech": "Tech encompasses all technological advancements and innovations in various fields such as computing, engineering, and healthcare.",
+                "Python": "Python is a high-level programming language used for general-purpose programming.",
+                "Data Science": "Data Science is a multidisciplinary field that uses scientific methods, processes, algorithms, and systems to extract knowledge and insights from data.",
+                "Machine Learning": "Machine Learning is a branch of artificial intelligence (AI) focused on building applications that learn from data and improve their accuracy over time without being programmed to do so.",
+                "JavaScript": "JavaScript is a programming language commonly used in web development to create interactive effects within web browsers.",
+                "Web Development": "Web Development involves the building and maintenance of websites; it's the work that happens behind the scenes to make a website look great, work fast, and perform well with a seamless user experience.",
+                "Cybersecurity": "Cybersecurity involves protecting computer systems and networks from information disclosure, theft of or damage to their hardware, software, or electronic data.",
+                "SQL": "SQL (Structured Query Language) is a standardized programming language used to manage relational databases and perform various operations on the data in them.",
+                "Business Analysis": "Business Analysis involves identifying business needs and determining solutions to business problems.",
+                "Project Management": "Project Management is the application of processes, methods, skills, knowledge, and experience to achieve specific project objectives according to the project acceptance criteria within agreed parameters.",
+                "Basic Programming": "Basic Programming is the foundational knowledge required to write and understand simple code.",
+                "Intro to Computers": "Introduction to Computers covers the basics of how computers work and the fundamental concepts of computing.",
+                "Digital Literacy": "Digital Literacy involves having the skills needed to live, learn, and work in a society where communication and access to information are increasingly through digital technologies like internet platforms, social media, and mobile devices.",
+                "Startup Skills": "Startup Skills encompass the knowledge needed to start, operate, and scale new businesses, including aspects such as ideation, funding, marketing, and growth strategies.",
+                "Business Strategy": "Business Strategy involves the formulation and implementation of major goals and initiatives taken by a company's top management on behalf of owners, based on consideration of resources and an assessment of the internal and external environments in which the organization competes."
+            };
 
-// chat.js
+            function fetchSkills() {
+                fetch("/get-skills")
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Fetched skills data:", data);  // Debugging statement
+                        const skillsContainer = document.getElementById("skillsContainer");
 
+                        if (data.skills && data.skills.length > 0) {
+                            skillsContainer.innerHTML = ""; // Clear previous content
+                            data.skills.forEach(skill => {
+                                const skillCard = document.createElement("div");
+                                skillCard.className = "skill-card";
+                                skillCard.innerHTML = `
+                                    <div class="skill-title">${skill}</div>
+                                    <div class="skill-description">${skillDetails[skill] || 'No details available.'}</div>
+                                    <button class="reveal-button" onclick="revealSkill(event)">Reveal</button>
+                                `;
+                                skillsContainer.appendChild(skillCard);
+                            });
+                        } else {
+                            skillsContainer.innerHTML = "<p>No skills recommended yet. Start chatting to receive suggestions.</p>";
+                        }
+                    })
+                    .catch(error => console.error("Error fetching skills:", error));
+            }
 
-document.getElementById('hamburger').addEventListener('click', function() {
-    var navBar = document.getElementById('nav-bar');
-    if (navBar.style.display === 'block') {
-        navBar.style.display = 'none';
-    } else {
-        navBar.style.display = 'block';
-    }
-});
+            fetchSkills();
+            window.revealSkill = function(event) {
+                const button = event.target;
+                const skillCard = button.parentElement;
+                const description = skillCard.querySelector(".skill-description");
 
-
-    </script>
-</body>
-</html>
+                // Show the description and hide the button
+                description.style.display = "block";
+                button.style.display = "none";
+            };
+        });
+            </script>
+            
+        </body>
+        </html>
+        
