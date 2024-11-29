@@ -707,62 +707,6 @@ def logout():
     logout_user()
     flash('Logged out successfully!', 'success')
     return redirect(url_for('login'))
-@app.route('/api/weekly-active-users')
-def weekly_active_users():
-    end_of_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-    start_of_week = end_of_day - timedelta(days=7)
-
-    weekly_active_users = user_activity_collection.aggregate([
-        {
-            "$match": {
-                "timestamp": {"$gte": start_of_week, "$lt": end_of_day}
-            }
-        },
-        {
-            "$group": {
-                "_id": {
-                    "day": {"$dayOfMonth": "$timestamp"},
-                    "month": {"$month": "$timestamp"},
-                    "year": {"$year": "$timestamp"}
-                },
-                "unique_users": {"$addToSet": "$user_id"}
-            }
-        },
-        {
-            "$project": {
-                "date": {"$dateFromParts": {"year": "$_id.year", "month": "$_id.month", "day": "$_id.day"}},
-                "unique_users_count": {"$size": "$unique_users"}
-            }
-        },
-        {
-            "$sort": {"date": 1}
-        }
-    ])
-
-    data = [{"date": str(day["date"].date()), "count": day["unique_users_count"]} for day in weekly_active_users]
-    return jsonify(data)
-@app.route('/api/daily-active-users')
-def daily_active_users():
-    start_of_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    end_of_day = start_of_day + timedelta(days=1)
-
-    daily_active_users = user_activity_collection.aggregate([
-        {
-            "$match": {
-                "timestamp": {"$gte": start_of_day, "$lt": end_of_day}
-            }
-        },
-        {
-            "$group": {
-                "_id": "$user_id"
-            }
-        },
-        {
-            "$count": "daily_active_users"
-        }
-    ])
-
-    count = list(daily_active_users)[0]['daily_active_users'] if daily_active_users else 0
-    return jsonify({'count': count})    
+  
 if __name__ == '__main__':
     app.run()
