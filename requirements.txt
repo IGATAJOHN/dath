@@ -7,3 +7,5 @@ flask_session
 python-dotenv
 flask_mail
 gunicorn
+spacy
+textblob
