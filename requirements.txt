@@ -7,6 +7,6 @@ flask_session
 python-dotenv
 flask_mail
 gunicorn
-spacy==2.3.9
+spacy==3.7.2
 textblob
-numpy==1.26.4
+
