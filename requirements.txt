@@ -9,3 +9,4 @@ flask_mail
 gunicorn
 spacy==2.3.9
 textblob
+numpy==1.26.4
