@@ -15,7 +15,7 @@
         <div class="container">
             <a class="navbar-brand" href="#">
                 
-                <img src="{{ url_for('static', filename='assets/img/dathway logo web.png') }}" alt="Pathway Logo" width="120">
+                <img src="{{ url_for('static', filename='assets/img/dathway logo web.png') }}" alt="Pathway Logo" height="120" width="250">
 
             </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,10 +36,10 @@
                         <a class="nav-link" href="#">What to Learn</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="https://forms.gle/rpQtixh3fpDKeqNv8"><button class="btn" style="border: 1px solid turquoise;color: white;">Login</button></a>
+                        <a class="nav-link" href="{{url_for('login')}}"><button class="btn" style="border: 1px solid turquoise;color: white;">Login</button></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="https://forms.gle/rpQtixh3fpDKeqNv8"><button class="btn active btn-info">Signup</button></a>
+                        <a class="nav-link" href="{{url_for('register')}}"><button class="btn active btn-info">Signup</button></a>
                     </li>
                     
                 </ul>
@@ -56,7 +56,7 @@
     <div class="hero-content">
         <h1>Unlock Your Potential with Personalized AI Guidance</h1>
         <p>Empowering learners and career changers with tailored skill recommendations and curated courses.</p>
-        <a href="https://forms.gle/rpQtixh3fpDKeqNv8" class="btn btn-get-started">Get Started</a>
+        <a href="{{url_for('register')}}" class="btn btn-get-started">Get Started</a>
     </div>
 </div>
 
@@ -69,7 +69,7 @@
                     <div class="how-it-works-item">
                         <img src="{{ url_for('static', filename='assets/img/m1.png') }}" alt="Step 1">
                         <div>
-                            <a href="https://forms.gle/rpQtixh3fpDKeqNv8"><button class="btn btn-lg"style=" border: 1px solid white; color: white;">Step 1</button></a><br><br>
+                            <a href="{{url_for('register')}}"><button class="btn btn-lg"style=" border: 1px solid white; color: white;">Step 1</button></a><br><br>
                             <h3>Sign Up</h3>
                             <p>Create your account in just few clicks and join our community of learners and professionals.</p>
                         </div>
