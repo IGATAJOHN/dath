@@ -1,3 +1,7 @@
-# build.sh
-python -m spacy download en_core_web_sm
+#!/bin/bash
 
+# Install the required packages
+pip install -r requirements.txt
+
+# Download spaCy model
+sh commands.sh
